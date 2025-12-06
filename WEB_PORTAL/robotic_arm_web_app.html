@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESP32 8-Channel Servo Controller</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #101820;
+      color: #f2f2f2;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      color: #00d8ff;
+      margin-bottom: 10px;
+    }
+
+    #top-bar {
+      margin-bottom: 20px;
+    }
+
+    #ipInput {
+      padding: 6px;
+      border-radius: 6px;
+      border: none;
+      width: 200px;
+    }
+
+    #connectBtn {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #00d8ff;
+      cursor: pointer;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #9be2ff;
+    }
+
+    /* Landscape Layout */
+    #channel-wrapper {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    .column {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .slider-container {
+      background: #1b2735;
+      padding: 12px 18px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.4);
+      text-align: left;
+    }
+
+    label {
+      font-weight: bold;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #00d8ff;
+    }
+  </style>
+</head>
+
+<body>
+  
+  <h1>ESP32 8-Channel Servo Controller</h1>
+
+  <div id="top-bar">
+    <input id="ipInput" placeholder="ESP32 IP (e.g. 192.168.1.45)" />
+    <button id="connectBtn">Connect</button>
+    <div id="status">Not connected</div>
+  </div>
+
+  <!-- LANDSCAPE UI: 4 sliders left, 4 sliders right -->
+  <div id="channel-wrapper">
+
+    <div class="column">
+      <div class="slider-container">
+        <label>CH1: <span id="vals1">0</span>°</label>
+        <input type="range" id="s1" min="0" max="180" value="0">
+      </div>
+
+      <div class="slider-container">
+        <label>CH2: <span id="vals2">0</span>°</label>
+        <input type="range" id="s2" min="0" max="180" value="0">
+      </div>
+
+      <div class="slider-container">
+        <label>CH3: <span id="vals3">0</span>°</label>
+        <input type="range" id="s3" min="0" max="180" value="0">
+      </div>
+
+      <div class="slider-container">
+        <label>CH4: <span id="vals4">0</span>°</label>
+        <input type="range" id="s4" min="0" max="180" value="0">
+      </div>
+    </div>
+
+    <div class="column">
+      <div class="slider-container">
+        <label>CH5: <span id="vals5">0</span>°</label>
+        <input type="range" id="s5" min="0" max="180" value="0">
+      </div>
+
+      <div class="slider-container">
+        <label>CH6: <span id="vals6">0</span>°</label>
+        <input type="range" id="s6" min="0" max="180" value="0">
+      </div>
+
+      <div class="slider-container">
+        <label>CH7: <span id="vals7">0</span>°</label>
+        <input type="range" id="s7" min="0" max="180" value="0">
+      </div>
+
+      <div class="slider-container">
+        <label>CH8: <span id="vals8">0</span>°</label>
+        <input type="range" id="s8" min="0" max="180" value="0">
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let ws;
+    let connected = false;
+
+    const totalChannels = 8;
+    const statusEl = document.getElementById("status");
+
+    document.getElementById("connectBtn").addEventListener("click", () => {
+      const ip = document.getElementById("ipInput").value.trim();
+      if (!ip) return alert("Enter ESP32 IP address first!");
+      connectWebSocket(ip);
+    });
+
+    function connectWebSocket(ip) {
+      ws = new WebSocket(`ws://${ip}:81/`);
+
+      ws.onopen = () => {
+        connected = true;
+        statusEl.textContent = `Connected to ws://${ip}:81/`;
+        statusEl.style.color = "#00ff9d";
+      };
+
+      ws.onclose = () => {
+        connected = false;
+        statusEl.textContent = "Disconnected";
+        statusEl.style.color = "#ff4f4f";
+      };
+
+      ws.onerror = () => {
+        connected = false;
+        statusEl.textContent = "Connection Error";
+        statusEl.style.color = "#ffcc00";
+      };
+
+      ws.onmessage = (msg) => console.log("ESP32:", msg.data);
+    }
+
+    /* Add listeners to each slider manually */
+    for (let i = 1; i <= totalChannels; i++) {
+      const slider = document.getElementById(`s${i}`);
+      const label = document.getElementById(`vals${i}`);
+
+      slider.addEventListener("input", () => {
+        label.textContent = slider.value;
+        sendServoData();
+      });
+    }
+
+    function sendServoData() {
+      if (!connected) return;
+
+      let data = {};
+      for (let i = 1; i <= totalChannels; i++) {
+        data[`s${i}`] = parseInt(document.getElementById(`s${i}`).value);
+      }
+
+      ws.send(JSON.stringify(data));
+    }
+  </script>
+
+</body>
+</html>
