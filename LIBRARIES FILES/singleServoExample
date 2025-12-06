@@ -1,0 +1,22 @@
+#include "SERVO_esp32.h"
+
+#define tstServoPin 13
+SERVO tstServo;
+
+
+void setup() {
+  Serial.begin(115200);
+
+    setupServo(tstServo, tstServoPin);
+}
+
+int inp = 0;
+
+void loop() {
+  if (Serial.available()) {
+    inp = Serial.parseInt();
+  }
+  // ledcWrite(tstServo.pin, inp);
+  setServo(tstServo, inp);
+  Serial.println(inp);
+}
